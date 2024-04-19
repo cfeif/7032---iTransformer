@@ -101,7 +101,7 @@ class Dataset_ETT_hour(Dataset):
 
 class Dataset_ETT_minute(Dataset):
     def __init__(self, root_path, flag='train', size=None,
-                 features='S', data_path='ETTm1.csv',
+                 features='S', data_train_path='ETTm1.csv',
                  target='OT', scale=True, timeenc=0, freq='t'):
         # size [seq_len, label_len, pred_len]
         # info
@@ -125,7 +125,7 @@ class Dataset_ETT_minute(Dataset):
         self.freq = freq
 
         self.root_path = root_path
-        self.data_path = data_path
+        self.data_path = data_train_path
         self.__read_data__()
 
     def __read_data__(self):
