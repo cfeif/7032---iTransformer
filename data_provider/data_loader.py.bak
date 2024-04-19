@@ -6,7 +6,6 @@ from torch.utils.data import Dataset, DataLoader
 from sklearn.preprocessing import StandardScaler
 from utils.timefeatures import time_features
 import warnings
-import pyarrow.parquet as pq
 
 warnings.filterwarnings('ignore')
 
@@ -191,8 +190,7 @@ class Dataset_ETT_minute(Dataset):
 
 class Dataset_Custom(Dataset):
     def __init__(self, root_path, flag='train', size=None,
-                 features='S', data_train_path='ETTh1.csv',
-                 data_test_path='ETTh1.csv',
+                 features='S', data_path='ETTh1.csv',
                  target='OT', scale=True, timeenc=0, freq='h'):
         # size [seq_len, label_len, pred_len]
         # info
@@ -216,31 +214,13 @@ class Dataset_Custom(Dataset):
         self.freq = freq
 
         self.root_path = root_path
-        # self.data_path = data_path
-        self.data_train_path = data_train_path
-        self.data_test_path = data_test_path
+        self.data_path = data_path
         self.__read_data__()
 
     def __read_data__(self):
         self.scaler = StandardScaler()
-        # ******************* modified part *************************
-        # df_raw = pd.read_csv(os.path.join(self.root_path,
-        #                                   self.data_path))
-        # ******************* new start *****************************
-        if self.data_train_path.split('.')[-1] == 'csv':
-            df_raw_train = pd.read_csv(os.path.join(self.root_path,
-                                              self.data_train_path))
-            df_raw_test = pd.read_csv(os.path.join(self.root_path,
-                                              self.data_test_path))
-        elif self.data_train_path.split('.')[-1] == 'parquet':
-            df_raw_train = pq.ParquetFile(os.path.join(self.root_path,
-                                              self.data_train_path)).read().to_pandas()
-            df_raw_test = pq.ParquetFile(os.path.join(self.root_path,
-                                              self.data_test_path)).read().to_pandas()
-
-        df_raw = pd.concat([df_raw_train, df_raw_test])
-
-        # ******************* new end *******************************
+        df_raw = pd.read_csv(os.path.join(self.root_path,
+                                          self.data_path))
 
         '''
         df_raw.columns: ['date', ...(other features), target feature]
@@ -249,49 +229,21 @@ class Dataset_Custom(Dataset):
         cols.remove(self.target)
         cols.remove('date')
         df_raw = df_raw[['date'] + cols + [self.target]]
-
-        # ******************* modified part *************************
-        # num_train = int(len(df_raw) * 0.7)
-        # num_test = int(len(df_raw) * 0.2)
-        # num_vali = len(df_raw) - num_train - num_test
-        # ******************* new start *****************************
-
-        num_train = int(len(df_raw_train) * 0.8)
-        num_vali = len(df_raw_train) - num_train
-        num_test = int(len(df_raw_test))
-
-        # ******************* new end *******************************
-
-        # borders' explanation:
-        # data_raw  : |**********************************|***************************|*******************|
-        # data_raw  : |********* data_raw_train *********|******* data_raw_val ******|** data_raw_test **|
-        #             |<----------- num_train ---------->|<--------- num_val ------->|<--- num_test ---->|
-        #                           |<-- self.seq_len -->|      |<-- self.seq_len -->|
-        # train_data: |**********************************|
-        # val_data  :               |************************************************|
-        # test_data :                                           |****************************************|
-
-        # ******************* modified part *************************
-        # border1s = [0, num_train - self.seq_len, len(df_raw) - num_test - self.seq_len]
-        # border2s = [num_train, num_train + num_vali, len(df_raw)]
-        # ******************* new start *****************************
-
-        border1s = [0, num_train - self.seq_len, num_train + num_vali]
+        num_train = int(len(df_raw) * 0.7)
+        num_test = int(len(df_raw) * 0.2)
+        num_vali = len(df_raw) - num_train - num_test
+        border1s = [0, num_train - self.seq_len, len(df_raw) - num_test - self.seq_len]
         border2s = [num_train, num_train + num_vali, len(df_raw)]
-
-        # ******************* new end *******************************
-
         border1 = border1s[self.set_type]
         border2 = border2s[self.set_type]
 
-        # M:multivariate predict multivariate, S:univariate predict univariate, MS:multivariate predict univariate'
         if self.features == 'M' or self.features == 'MS':
-            cols_data = df_raw.columns[1:] # Seq1 Seq2 .... OT
+            cols_data = df_raw.columns[1:]
             df_data = df_raw[cols_data]
         elif self.features == 'S':
-            df_data = df_raw[[self.target]] # OT
+            df_data = df_raw[[self.target]]
 
-        if self.scale: # if we standardize features by removing the mean and scaling to unit variance
+        if self.scale:
             train_data = df_data[border1s[0]:border2s[0]]
             self.scaler.fit(train_data.values)
             data = self.scaler.transform(df_data.values)
