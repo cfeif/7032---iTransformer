@@ -22,7 +22,9 @@ if __name__ == '__main__':
     # data loader
     parser.add_argument('--data', type=str, required=True, default='custom', help='dataset type')
     parser.add_argument('--root_path', type=str, default='./data/electricity/', help='root path of the data file')
-    parser.add_argument('--data_path', type=str, default='electricity.csv', help='data csv file')
+    # parser.add_argument('--data_path', type=str, default='electricity.csv', help='data csv file')
+    parser.add_argument('--data_train_path', type=str, default='ETTh1.csv', help='data file for training')
+    parser.add_argument('--data_test_path', type=str, default='ETTh1.csv', help='data file for testing')
     parser.add_argument('--features', type=str, default='M',
                         help='forecasting task, options:[M, S, MS]; M:multivariate predict multivariate, S:univariate predict univariate, MS:multivariate predict univariate')
     parser.add_argument('--target', type=str, default='OT', help='target feature in S or MS task')
@@ -88,6 +90,9 @@ if __name__ == '__main__':
                                                                            'you can select [partial_start_index, min(enc_in + partial_start_index, N)]')
 
     args = parser.parse_args()
+    print('Args in experiment(input):')
+    print(args)
+    print('torch.cuda.is_available()', torch.cuda.is_available())
     args.use_gpu = True if torch.cuda.is_available() and args.use_gpu else False
 
     if args.use_gpu and args.use_multi_gpu:
