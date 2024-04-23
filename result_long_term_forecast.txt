@@ -1,3 +1,6 @@
 Exchange_48_1_iTransformer_custom_M_ft48_sl48_ll1_pl128_dm8_nh3_el1_dl128_df1_fctimeF_ebTrue_dtExp_projection_0  
 mse:0.02504916675388813, mae:0.1043594628572464
 
+nofeatures_48_1_iTransformer_custom_M_ft48_sl48_ll1_pl128_dm8_nh3_el1_dl128_df1_fctimeF_ebTrue_dtExp_projection_0  
+mse:0.031607046723365784, mae:0.11876385658979416
+
