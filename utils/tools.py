@@ -4,19 +4,34 @@ import numpy as np
 import torch
 import matplotlib.pyplot as plt
 import pandas as pd
+import random
 
 plt.switch_backend('agg')
 
 
-def adjust_learning_rate(optimizer, epoch, args):
+def adjust_learning_rate(optimizer, epoch, args, early = 0):
     # lr = args.learning_rate * (0.2 ** (epoch // 2))
     if args.lradj == 'type1':
         lr_adjust = {epoch: args.learning_rate * (0.5 ** ((epoch - 1) // 1))}
+    elif args.lradj == 'type3':
+        lr_adjust = {epoch: args.learning_rate * (0.4 ** ((epoch-1) // 3))}
     elif args.lradj == 'type2':
         lr_adjust = {
             2: 5e-5, 4: 1e-5, 6: 5e-6, 8: 1e-6,
             10: 5e-7, 15: 1e-7, 20: 5e-8
         }
+    elif args.lradj == 'type4':
+        for param_group in optimizer.param_groups:
+            xlr = param_group['lr']
+        lr_adjust = {epoch: xlr}
+        if early > 1:
+            lr_adjust = {epoch: xlr/early}
+    elif args.lradj == 'type5':
+        for param_group in optimizer.param_groups:
+            xlr = param_group['lr']
+        lr_adjust = {epoch: xlr}
+        if early > 1:
+            lr_adjust = {epoch: xlr / ((early-1)//3+1)}
     if epoch in lr_adjust.keys():
         lr = lr_adjust[epoch]
         for param_group in optimizer.param_groups:
@@ -34,7 +49,8 @@ class EarlyStopping:
         self.val_loss_min = np.Inf
         self.delta = delta
 
-    def __call__(self, val_loss, model, path):
+
+    def __call__(self, val_loss, model, path, optimizer, epoch, args):
         score = -val_loss
         if self.best_score is None:
             self.best_score = score
@@ -42,6 +58,10 @@ class EarlyStopping:
         elif score < self.best_score + self.delta:
             self.counter += 1
             print(f'EarlyStopping counter: {self.counter} out of {self.patience}')
+            # change learning rate
+            if self.counter >= 2:
+                adjust_learning_rate(optimizer, epoch, args,self.counter)
+                print('Early stopping: Adjusting learning rate.')
             if self.counter >= self.patience:
                 self.early_stop = True
         else:
